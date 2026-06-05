@@ -132,7 +132,9 @@ async function route({ request, response, dataDir, runId, clients }) {
     match = /^\/runs\/([^/]+)\/entries\/([^/]+)\/site\/(.*)$/.exec(url.pathname);
     if (request.method === "GET" && match) {
       const root = path.join(entryDir(dataDir, decodeURIComponent(match[1]), decodeURIComponent(match[2])), "site");
-      return file(response, safeJoin(root, decodeURIComponent(match[3] || "index.html")));
+      return file(response, safeJoin(root, decodeURIComponent(match[3] || "index.html")), {
+        "Access-Control-Allow-Origin": "null"
+      });
     }
     if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
       return file(response, path.join(galleryRoot, "index.html"));
@@ -168,14 +170,15 @@ async function readBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-async function file(response, candidate) {
+async function file(response, candidate, headers = {}) {
   if (!candidate) return json(response, 403, { error: "Forbidden" });
   const info = await stat(candidate).catch(() => null);
   if (!info?.isFile()) return json(response, 404, { error: "File not found" });
   response.writeHead(200, {
     "Content-Type": TYPES[path.extname(candidate).toLowerCase()] || "application/octet-stream",
     "Content-Length": info.size,
-    "Cache-Control": path.extname(candidate) === ".html" ? "no-cache" : "public, max-age=60"
+    "Cache-Control": path.extname(candidate) === ".html" ? "no-cache" : "public, max-age=60",
+    ...headers
   });
   createReadStream(candidate).pipe(response);
 }

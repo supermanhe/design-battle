@@ -127,7 +127,7 @@ function renderFocus() {
   }
   $("#thumbnail-rail").innerHTML = state.run.entries.map((candidate, candidateIndex) => `
     <button class="thumb ${candidate.id === entry.id ? "active" : ""}" data-focus="${escapeHtml(candidate.id)}" ${candidate.status !== "ready" ? "disabled" : ""}>
-      ${candidate.status === "ready" ? `<iframe src="${siteUrl(candidate)}" title="" tabindex="-1"></iframe>` : ""}
+      ${candidate.status === "ready" ? `<iframe src="${siteUrl(candidate)}" title="" tabindex="-1" sandbox="allow-scripts allow-forms allow-modals"></iframe>` : ""}
       <span>${String(candidateIndex + 1).padStart(2, "0")} / ${escapeHtml(candidate.status)}</span>
       <b>${escapeHtml(candidate.skill.name)}</b>
     </button>`).join("");

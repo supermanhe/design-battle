@@ -74,7 +74,8 @@ export async function runCliEntry({ dataDir, run, entry, timeoutMs, env = proces
       cwd: dir,
       env: { ...env, DESIGN_BATTLE_ENTRY_DIR: dir, DESIGN_BATTLE_SKILL: entry.skill.path },
       stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: true
+      windowsHide: true,
+      detached: process.platform !== "win32"
     });
     const append = (chunk) => appendFile(logFile, chunk).catch(() => {});
     processHandle.stdout.on("data", append);
@@ -106,14 +107,22 @@ export async function runCliEntry({ dataDir, run, entry, timeoutMs, env = proces
   });
 }
 
-async function terminateProcessTree(child) {
+export async function terminateProcessTree(child, {
+  platform = process.platform,
+  kill = process.kill,
+  spawnProcess = spawn
+} = {}) {
   if (!child.pid) return;
-  if (process.platform !== "win32") {
-    child.kill("SIGTERM");
+  if (platform !== "win32") {
+    try {
+      kill(-child.pid, "SIGTERM");
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
     return;
   }
   await new Promise((resolve) => {
-    const killer = spawn("taskkill.exe", ["/pid", String(child.pid), "/t", "/f"], {
+    const killer = spawnProcess("taskkill.exe", ["/pid", String(child.pid), "/t", "/f"], {
       stdio: "ignore",
       windowsHide: true
     });

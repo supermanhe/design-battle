@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { access } from "node:fs/promises";
+import { access, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultDataDir, runDir } from "./paths.mjs";
@@ -54,6 +54,8 @@ export async function runBattle(options) {
 }
 
 export async function launchGallery({ dataDir = defaultDataDir(), runId, noOpen = false }) {
+  const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
+  await rm(galleryFile, { force: true });
   const args = [binFile, "serve", runId, "--data-dir", dataDir, "--auto-open"];
   if (noOpen) args.push("--no-open");
   const child = spawn(process.execPath, args, {
@@ -62,7 +64,6 @@ export async function launchGallery({ dataDir = defaultDataDir(), runId, noOpen 
     windowsHide: true
   });
   child.unref();
-  const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
   for (let attempt = 0; attempt < 80; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 50));
     try {

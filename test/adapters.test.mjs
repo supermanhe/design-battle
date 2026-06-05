@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HOSTS, getHostAdapter } from "../src/adapters.mjs";
+import { HOSTS, getHostAdapter, terminateProcessTree } from "../src/adapters.mjs";
 import { buildEntryPrompt } from "../src/prompt.mjs";
 import { prepareBattle } from "../src/orchestrator.mjs";
 import { sampleSkills, temporaryDirectory, writeSkill } from "./helpers.mjs";
@@ -44,4 +44,13 @@ test("prepared runs preserve host provider and model overrides", async (t) => {
   });
   assert.equal(run.options.hostProvider, "copilot");
   assert.equal(run.options.hostModel, "gpt-4.1");
+});
+
+test("POSIX process tree termination signals the contestant process group", async () => {
+  const signals = [];
+  await terminateProcessTree({ pid: 4321 }, {
+    platform: "linux",
+    kill: (pid, signal) => signals.push({ pid, signal })
+  });
+  assert.deepEqual(signals, [{ pid: -4321, signal: "SIGTERM" }]);
 });

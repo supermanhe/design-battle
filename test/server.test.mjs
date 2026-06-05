@@ -25,8 +25,16 @@ test("gallery serves entries, persists favorites, lists history, and auto-opens 
   await new Promise((resolve) => setTimeout(resolve, 40));
 
   assert.equal(opened.length, 1);
+  const galleryPage = await fetch(`${gallery.baseUrl}/`);
+  const galleryHtml = await galleryPage.text();
+  assert.equal(galleryHtml.match(/sandbox="allow-scripts allow-forms allow-modals"/g)?.length, 2);
+  assert.doesNotMatch(galleryHtml, /allow-same-origin/);
+  const galleryScript = await (await fetch(`${gallery.baseUrl}/assets/app.js`)).text();
+  assert.match(galleryScript, /sandbox="allow-scripts allow-forms allow-modals"/);
+  assert.doesNotMatch(galleryScript, /allow-same-origin/);
   const page = await fetch(`${gallery.baseUrl}/runs/${run.id}/entries/${run.entries[0].id}/site/index.html`);
   assert.equal(page.status, 200);
+  assert.equal(page.headers.get("access-control-allow-origin"), "null");
   assert.match(await page.text(), /Standalone mock entry/);
   const assetPath = path.join(temporary.dir, "runs", run.id, "entries", run.entries[0].id, "site", "local.css");
   await writeFile(assetPath, "body{color:red}", "utf8");
