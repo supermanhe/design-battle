@@ -42,6 +42,22 @@ test("validation rejects missing local assets and preserves cancellation", async
   assert.equal((await validateAndMarkReady(temporary.dir, run.id, run.entries[1].id)).status, "cancelled");
 });
 
+test("asset validation reads HTML attributes and includes srcset candidates", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Asset parsing", host: "codex", skills: sampleSkills.slice(0, 2) });
+  const scriptSite = path.join(entryDir(temporary.dir, run.id, run.entries[0].id), "site");
+  await writeFile(path.join(scriptSite, "index.html"), '<!doctype html><html><body><script>const src = "camera";</script></body></html>');
+  assert.equal((await validateAndMarkReady(temporary.dir, run.id, run.entries[0].id)).status, "ready");
+
+  const srcsetSite = path.join(entryDir(temporary.dir, run.id, run.entries[1].id), "site");
+  await writeFile(path.join(srcsetSite, "index.html"), '<!doctype html><html><body><img srcset="missing-small.png 1x, missing-large.png 2x"></body></html>');
+  const invalid = await validateAndMarkReady(temporary.dir, run.id, run.entries[1].id);
+  assert.equal(invalid.status, "failed");
+  assert.match(invalid.error, /missing-small\.png/);
+  assert.match(invalid.error, /missing-large\.png/);
+});
+
 test("recovery preserves fresh running entries and fails stale interrupted entries", async (t) => {
   const temporary = await temporaryDirectory();
   t.after(temporary.cleanup);

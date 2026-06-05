@@ -132,9 +132,7 @@ export async function validateAndMarkReady(dataDir, runId, entryId) {
 }
 
 async function findMissingLocalAssets(siteDir, source) {
-  const references = [];
-  for (const match of source.matchAll(/\b(?:src|poster)\s*=\s*["']([^"']+)["']/gi)) references.push(match[1]);
-  for (const match of source.matchAll(/<link\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/gi)) references.push(match[1]);
+  const references = collectAssetReferences(source);
   const missing = [];
   for (const reference of new Set(references)) {
     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)) continue;
@@ -151,6 +149,44 @@ async function findMissingLocalAssets(siteDir, source) {
     if (!candidate || !(await pathExists(candidate))) missing.push(reference);
   }
   return missing;
+}
+
+function collectAssetReferences(source) {
+  const references = [];
+  for (const tagMatch of source.matchAll(/<([a-z][a-z0-9:-]*)\b((?:"[^"]*"|'[^']*'|[^'">])*)>/gi)) {
+    const tagName = tagMatch[1].toLowerCase();
+    const attributes = tagMatch[2];
+    for (const attributeMatch of attributes.matchAll(/(?:^|\s)(src|poster|srcset|href)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+      const name = attributeMatch[1].toLowerCase();
+      const value = attributeMatch[2] ?? attributeMatch[3];
+      if (name === "href" && tagName !== "link") continue;
+      if (name === "srcset") references.push(...parseSrcsetReferences(value));
+      else references.push(value);
+    }
+  }
+  return references;
+}
+
+function parseSrcsetReferences(value) {
+  const references = [];
+  let remaining = value.trim();
+  while (remaining) {
+    remaining = remaining.replace(/^[,\s]+/, "");
+    if (!remaining) break;
+    const end = /^data:/i.test(remaining) ? remaining.search(/\s/) : remaining.search(/[\s,]/);
+    const reference = end === -1 ? remaining : remaining.slice(0, end);
+    references.push(reference);
+    if (end === -1) break;
+    remaining = remaining.slice(end);
+    if (remaining.startsWith(",")) {
+      remaining = remaining.slice(1);
+      continue;
+    }
+    const next = remaining.indexOf(",");
+    if (next === -1) break;
+    remaining = remaining.slice(next + 1);
+  }
+  return references.filter(Boolean);
 }
 
 export async function loadRun(dataDir, runId) {
