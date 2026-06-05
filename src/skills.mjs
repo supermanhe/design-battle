@@ -12,6 +12,11 @@ const FRONTEND_TERMS = [
   "frontend", "front-end", "ui", "ux", "website", "web app", "landing page",
   "interface", "html", "css", "dashboard", "portfolio", "responsive"
 ];
+const NON_CONTESTANT_NAMES = new Set([
+  "design-battle", "diagram-design", "game-design-kb", "imagegen", "playwright",
+  "redesign-existing-projects", "web-shader-extractor"
+]);
+const NON_CONTESTANT_PREFIXES = ["gsap-", "browser:", "build-web-apps:"];
 
 const STOP_WORDS = new Set([
   "a", "an", "and", "as", "at", "be", "build", "by", "create", "for", "from",
@@ -100,7 +105,7 @@ export async function scanSkills({ roots = defaultSkillRoots(), includeAll = fal
       root: path.dirname(canonical),
       designScore: designRelevance(`${frontmatter.name || ""} ${frontmatter.description || ""}`)
     };
-    if (skill.name.toLowerCase() === "design-battle") continue;
+    if (!includeAll && !isContestantSkill(skill.name)) continue;
     if (includeAll || skill.designScore > 0) {
       const contentKey = createHash("sha256").update(text.replace(/\r\n/g, "\n")).digest("hex");
       const duplicate = byContent.get(contentKey);
@@ -112,6 +117,11 @@ export async function scanSkills({ roots = defaultSkillRoots(), includeAll = fal
     }
   }
   return [...deduped.values()].sort((a, b) => b.designScore - a.designScore || a.name.localeCompare(b.name));
+}
+
+export function isContestantSkill(name) {
+  const normalized = String(name).toLowerCase();
+  return !NON_CONTESTANT_NAMES.has(normalized) && !NON_CONTESTANT_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 }
 
 export function tokenize(value) {

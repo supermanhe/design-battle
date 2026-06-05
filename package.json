@@ -3,13 +3,26 @@
   "version": "0.1.0",
   "description": "Cross-agent frontend design skill tournament with a live local gallery",
   "type": "module",
+  "files": [
+    "agents",
+    "assets",
+    "bin",
+    "docs",
+    "references",
+    "scripts",
+    "src",
+    "LICENSE",
+    "README.md",
+    "SKILL.md"
+  ],
   "bin": {
     "design-battle": "./bin/design-battle.mjs"
   },
   "scripts": {
     "test": "node --test",
     "scan": "node ./bin/design-battle.mjs scan",
-    "doctor": "node ./bin/design-battle.mjs doctor"
+    "doctor": "node ./bin/design-battle.mjs doctor",
+    "pack:check": "npm pack --dry-run"
   },
   "engines": {
     "node": ">=18"

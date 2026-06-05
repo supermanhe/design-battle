@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HOSTS, getHostAdapter, terminateProcessTree } from "../src/adapters.mjs";
+import { HOSTS, getHostAdapter, runCliEntry, terminateProcessTree } from "../src/adapters.mjs";
 import { buildEntryPrompt } from "../src/prompt.mjs";
 import { prepareBattle } from "../src/orchestrator.mjs";
+import { createRun, updateEntry } from "../src/state.mjs";
 import { sampleSkills, temporaryDirectory, writeSkill } from "./helpers.mjs";
 
 test("all four host adapters expose native and CLI fallback contracts", () => {
@@ -53,4 +54,25 @@ test("POSIX process tree termination signals the contestant process group", asyn
     kill: (pid, signal) => signals.push({ pid, signal })
   });
   assert.deepEqual(signals, [{ pid: -4321, signal: "SIGTERM" }]);
+});
+
+test("CLI fallback terminates its process when the entry is cancelled", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Cancel process", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const entry = run.entries[0];
+  const adapter = HOSTS.codex;
+  const original = { command: adapter.command, args: adapter.args, stdin: adapter.stdin, windowsLaunch: adapter.windowsLaunch };
+  Object.assign(adapter, {
+    command: process.execPath,
+    args: () => ["-e", "setInterval(() => {}, 1000)"],
+    stdin: false,
+    windowsLaunch: undefined
+  });
+  t.after(() => Object.assign(adapter, original));
+  await updateEntry(temporary.dir, run.id, entry.id, { status: "running", stage: "Running test process" });
+  const running = runCliEntry({ dataDir: temporary.dir, run, entry, timeoutMs: 5000 });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await updateEntry(temporary.dir, run.id, entry.id, { status: "cancelled", stage: "Cancelled" });
+  await assert.rejects(running, (error) => error.code === "ECANCELLED");
 });

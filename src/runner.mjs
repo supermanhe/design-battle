@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { entryDir } from "./paths.mjs";
 import { loadRun, updateEntry, validateAndMarkReady } from "./state.mjs";
@@ -27,12 +27,21 @@ export async function runEntries({
     while (cursor < run.entries.length) {
       const index = cursor++;
       const entry = run.entries[index];
-      await updateEntry(dataDir, runId, entry.id, {
+      const beforeStart = await loadRun(dataDir, runId);
+      if (beforeStart.entries.find((candidate) => candidate.id === entry.id)?.status === "cancelled") {
+        await settle();
+        continue;
+      }
+      const started = await updateEntry(dataDir, runId, entry.id, {
         status: "running",
         stage: executor === "mock" ? "Rendering mock concept" : `Running ${run.host} CLI`,
         startedAt: new Date().toISOString(),
         error: null
-      });
+      }, { unlessStatuses: ["cancelled"] });
+      if (started.status === "cancelled") {
+        await settle();
+        continue;
+      }
       try {
         if (typeof executor === "function") {
           await executor({ dataDir, run, entry, index });
@@ -41,14 +50,26 @@ export async function runEntries({
         } else {
           await runCliEntry({ dataDir, run, entry, timeoutMs });
         }
-        await validateAndMarkReady(dataDir, runId, entry.id);
+        const current = await loadRun(dataDir, runId);
+        if (current.entries.find((candidate) => candidate.id === entry.id)?.status !== "cancelled") {
+          await validateAndMarkReady(dataDir, runId, entry.id);
+        }
       } catch (error) {
-        await updateEntry(dataDir, runId, entry.id, {
-          status: "failed",
-          stage: error.code === "ETIMEDOUT" ? "Timed out" : "Failed",
-          error: error.message,
-          completedAt: new Date().toISOString()
-        });
+        const current = await loadRun(dataDir, runId);
+        if (current.entries.find((candidate) => candidate.id === entry.id)?.status !== "cancelled") {
+          const output = path.join(entryDir(dataDir, runId, entry.id), "site", "index.html");
+          const outputInfo = await stat(output).catch(() => null);
+          if (outputInfo?.isFile()) {
+            await validateAndMarkReady(dataDir, runId, entry.id);
+          } else {
+            await updateEntry(dataDir, runId, entry.id, {
+              status: "failed",
+              stage: error.code === "ETIMEDOUT" ? "Timed out" : "Failed",
+              error: error.message,
+              completedAt: new Date().toISOString()
+            }, { unlessStatuses: ["cancelled"] });
+          }
+        }
       }
       await settle();
     }

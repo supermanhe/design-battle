@@ -16,7 +16,7 @@ runs/<run-id>/
     site/index.html
 ```
 
-`site/index.html` must load directly in an iframe. Local assets may exist only under the same `site/` directory.
+`site/index.html` must load directly in a sandboxed iframe. Local assets may exist only under the same `site/` directory and referenced local assets must exist before validation succeeds.
 
 ## Statuses
 
@@ -28,6 +28,7 @@ runs/<run-id>/
 
 Write JSON atomically. The gallery polls run state and broadcasts changes over SSE.
 Long-running native delegates may refresh `updatedAt` with the `heartbeat` command. Stale `running` entries are marked interrupted during reconciliation.
+`cancelled` is terminal: late output and executor failures must not overwrite it. CLI fallback processes poll their entry status and terminate when cancellation is recorded.
 
 ## Isolation
 

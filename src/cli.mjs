@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { HOSTS } from "./adapters.mjs";
 import { defaultDataDir, runsDir } from "./paths.mjs";
-import { launchGallery, prepareBattle, runBattle } from "./orchestrator.mjs";
+import { closeGallery, launchGallery, prepareBattle, runBattle } from "./orchestrator.mjs";
 import { cleanRun, recoverRun, listRuns, loadRun, updateEntry, validateAndMarkReady } from "./state.mjs";
 import { scanSkills } from "./skills.mjs";
 import { startGalleryServer } from "./server.mjs";
@@ -70,11 +70,18 @@ export async function main(argv) {
     console.log(gallery.url);
     return;
   }
+  if (command === "close") {
+    const runId = positional[0];
+    if (!runId) throw new Error("close requires a run id.");
+    console.log(await closeGallery({ dataDir, runId }) ? `Closed gallery ${runId}` : `Gallery ${runId} was not running`);
+    return;
+  }
   if (command === "task") {
     const [runId, entryId] = positional;
     const run = await loadRun(dataDir, runId);
     const entry = run?.entries.find((candidate) => candidate.id === entryId);
     if (!entry) throw new Error(`Entry not found: ${runId}/${entryId}`);
+    if (["ready", "failed", "cancelled"].includes(entry.status)) throw new Error(`Cannot start entry in terminal status: ${entry.status}`);
     await updateEntry(dataDir, runId, entryId, {
       status: "running",
       stage: flags.stage || `Running via ${HOSTS[run.host]?.native || "native delegation"}`,
@@ -137,6 +144,7 @@ export async function main(argv) {
   if (command === "clean") {
     const runId = positional[0];
     if (!runId) throw new Error("clean requires a run id.");
+    await closeGallery({ dataDir, runId });
     const removed = await cleanRun(dataDir, runId);
     console.log(`Removed run ${removed.id}`);
     return;
@@ -189,7 +197,7 @@ async function doctor(dataDir) {
   console.log(`Data: ${dataDir}`);
   for (const [host, adapter] of Object.entries(HOSTS)) {
     const result = spawnSync(process.platform === "win32" ? "where.exe" : "which", [adapter.command], { encoding: "utf8" });
-    console.log(`${host}: ${result.status === 0 ? `available (${adapter.native}; CLI fallback ready)` : "unavailable"}`);
+    console.log(`${host}: ${result.status === 0 ? `available (${adapter.native}; CLI installed)` : "unavailable"}`);
   }
   const skills = await scanSkills();
   console.log(`Relevant design skills: ${skills.length}`);
@@ -209,6 +217,7 @@ Usage:
   design-battle prepare "<brief>" [options]
   design-battle serve [run-id] [--port 0] [--auto-open]
   design-battle open <run-id>
+  design-battle close <run-id>
   design-battle task <run-id> <entry-id>
   design-battle validate <run-id> <entry-id>
   design-battle fail <run-id> <entry-id> [--error message]

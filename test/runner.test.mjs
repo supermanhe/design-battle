@@ -48,3 +48,41 @@ test("custom executor isolates failures and timeout-like errors", async (t) => {
   assert.deepEqual(final.entries.map((entry) => entry.status), ["failed", "failed", "ready"]);
   assert.equal(final.entries[1].stage, "Timed out");
 });
+
+test("cancelling a running entry remains terminal after its executor finishes", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Cancel", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const promise = runEntries({
+    dataDir: temporary.dir,
+    runId: run.id,
+    executor: async ({ dataDir, run: activeRun, entry }) => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const site = path.join(entryDir(dataDir, activeRun.id, entry.id), "site");
+      await mkdir(site, { recursive: true });
+      await writeFile(path.join(site, "index.html"), "<!doctype html><html><body>Late output</body></html>");
+    }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  const { updateEntry } = await import("../src/state.mjs");
+  await updateEntry(temporary.dir, run.id, run.entries[0].id, { status: "cancelled", stage: "Cancelled" });
+  const final = await promise;
+  assert.equal(final.entries[0].status, "cancelled");
+});
+
+test("valid output survives an executor error after generation", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Recover", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const final = await runEntries({
+    dataDir: temporary.dir,
+    runId: run.id,
+    executor: async ({ dataDir, run: activeRun, entry }) => {
+      const site = path.join(entryDir(dataDir, activeRun.id, entry.id), "site");
+      await mkdir(site, { recursive: true });
+      await writeFile(path.join(site, "index.html"), "<!doctype html><html><body>Complete before failure</body></html>");
+      throw new Error("host disconnected after writing output");
+    }
+  });
+  assert.equal(final.entries[0].status, "ready");
+});

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Design Battle 设计师使用指南</title>
+  <style>
+    :root {
+      --paper: #f0ede4;
+      --ink: #171713;
+      --muted: #68655c;
+      --red: #ee472e;
+      --acid: #d9ff43;
+      --blue: #91b9ff;
+      --line: rgba(23, 23, 19, .24);
+      --soft: rgba(255, 255, 255, .46);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, transparent 49.9%, rgba(23,23,19,.045) 50%, transparent 50.1%),
+        var(--paper);
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+    .mono { font-family: Consolas, "SFMono-Regular", monospace; }
+    .serif { font-family: Georgia, "Noto Serif SC", serif; }
+    .shell { width: min(1240px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: stretch; justify-content: space-between;
+      border-bottom: 2px solid var(--ink); background: rgba(240,237,228,.94);
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      padding: 15px 22px; background: var(--ink); color: var(--paper);
+      font: 900 18px/.9 Arial Black, sans-serif; text-decoration: none;
+    }
+    .brand b { display: block; color: var(--acid); font-size: 25px; }
+    .topbar nav { display: flex; }
+    .topbar nav a {
+      display: grid; place-items: center; padding: 0 18px; border-left: 1px solid var(--line);
+      font-size: 12px; text-decoration: none;
+    }
+    .topbar nav a:hover { background: var(--acid); }
+    .hero {
+      min-height: calc(100vh - 62px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(340px, .9fr);
+      border-bottom: 2px solid var(--ink);
+    }
+    .hero-copy { padding: clamp(48px, 8vw, 120px) clamp(0px, 4vw, 60px) 54px 0; align-self: center; }
+    .tag {
+      display: inline-block; padding: 7px 10px; border: 1px solid var(--ink); background: var(--acid);
+      font: 700 11px/1 Consolas, monospace; transform: rotate(-2deg);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin: 28px 0 22px; max-width: 9ch; font: 400 clamp(60px, 9vw, 112px)/.91 Georgia, serif;
+      letter-spacing: -.04em; text-wrap: balance;
+    }
+    .hero-copy > p { max-width: 54ch; color: var(--muted); font-size: 17px; line-height: 1.75; }
+    .start-box { margin-top: 36px; border: 2px solid var(--ink); background: var(--soft); }
+    .start-box header { display: flex; justify-content: space-between; padding: 10px 13px; border-bottom: 1px solid var(--ink); font: 700 11px/1 Consolas, monospace; }
+    .prompt { padding: 18px; font-size: 16px; line-height: 1.65; }
+    .copy {
+      border: 0; border-left: 1px solid var(--ink); background: var(--acid); padding: 0 16px; cursor: pointer; font-weight: 700;
+    }
+    .copy:hover { background: var(--red); }
+    .hero-stage {
+      position: relative; overflow: hidden; border-left: 2px solid var(--ink); background: var(--ink);
+      display: grid; place-content: center; padding: 42px;
+    }
+    .battle-stack { width: min(520px, 40vw); min-width: 340px; aspect-ratio: 4 / 4.2; position: relative; }
+    .concept {
+      position: absolute; inset: 0; padding: 18px; border: 2px solid var(--ink); color: var(--ink);
+      transition: transform .6s cubic-bezier(.2,.8,.2,1); overflow: hidden;
+    }
+    .concept:nth-child(1) { background: #f7f5ee; transform: rotate(-8deg) translate(-10%, 5%); }
+    .concept:nth-child(2) { background: var(--blue); transform: rotate(7deg) translate(10%, 1%); }
+    .concept:nth-child(3) { background: var(--acid); transform: rotate(-2deg); }
+    .battle-stack:hover .concept:nth-child(1) { transform: rotate(-13deg) translate(-24%, 8%); }
+    .battle-stack:hover .concept:nth-child(2) { transform: rotate(12deg) translate(24%, 4%); }
+    .concept-top { display: flex; justify-content: space-between; font: 700 11px/1 Consolas, monospace; }
+    .concept h3 { margin: 30% 0 12px; font: 400 clamp(38px, 6vw, 68px)/.92 Georgia, serif; letter-spacing: -.04em; }
+    .concept p { max-width: 30ch; line-height: 1.5; font-size: 12px; }
+    .winner { display: inline-block; margin-top: 20px; border: 1px solid var(--ink); padding: 7px 10px; background: var(--red); font: 700 10px/1 Consolas, monospace; }
+    section { border-bottom: 2px solid var(--ink); }
+    .section-head {
+      display: grid; grid-template-columns: minmax(240px, .75fr) 1.25fr; gap: 32px;
+      padding: clamp(50px, 7vw, 96px) 0 42px;
+    }
+    .section-head h2 { margin: 0; font: 400 clamp(42px, 6vw, 76px)/.98 Georgia, serif; letter-spacing: -.04em; }
+    .section-head p { align-self: end; margin: 0; max-width: 58ch; color: var(--muted); line-height: 1.75; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid var(--ink); margin-bottom: 80px; }
+    .flow article { min-height: 270px; padding: 18px; border-right: 1px solid var(--ink); background: var(--soft); }
+    .flow article:last-child { border: 0; }
+    .flow b { display: block; margin-bottom: 54px; font: 900 44px/1 Arial Black, sans-serif; color: var(--red); }
+    .flow h3 { font: 700 18px/1.3 Consolas, monospace; }
+    .flow p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .flow code { background: var(--ink); color: var(--acid); padding: 2px 5px; }
+    .workbench { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4vw, 60px); padding-bottom: 80px; }
+    .brief-builder { border: 2px solid var(--ink); background: #f8f6ef; }
+    .brief-builder header, .result header { padding: 13px 16px; border-bottom: 1px solid var(--ink); font: 700 11px/1 Consolas, monospace; }
+    .field { padding: 16px; border-bottom: 1px solid var(--line); }
+    .field label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; }
+    .field input { width: 100%; border: 1px solid var(--ink); background: transparent; padding: 11px; outline: none; }
+    .field input:focus { box-shadow: inset 0 -3px var(--acid); }
+    .build { width: 100%; border: 0; background: var(--ink); color: var(--paper); padding: 15px; cursor: pointer; font-weight: 700; }
+    .build:hover { color: var(--ink); background: var(--acid); }
+    .result { align-self: start; border: 2px solid var(--ink); background: var(--acid); box-shadow: 9px 9px 0 var(--ink); }
+    .result pre { margin: 0; min-height: 170px; padding: 18px; white-space: pre-wrap; line-height: 1.7; font-size: 13px; }
+    .result .copy { width: 100%; border: 0; border-top: 1px solid var(--ink); padding: 14px; }
+    .use-cases { display: grid; grid-template-columns: 1.2fr .8fr 1fr; border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); margin-bottom: 80px; }
+    .case { min-height: 300px; padding: 24px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .case:nth-child(1) { background: var(--red); }
+    .case:nth-child(2) { background: var(--blue); }
+    .case:nth-child(3) { background: var(--acid); }
+    .case h3 { margin: 70px 0 18px; font: 400 34px/1 Georgia, serif; }
+    .case p { max-width: 32ch; font-size: 13px; line-height: 1.7; }
+    .case code { font: 700 11px/1.5 Consolas, monospace; }
+    .gallery-demo { background: var(--ink); color: var(--paper); padding: 64px 0; }
+    .gallery-demo .section-head { padding-top: 0; }
+    .gallery-demo .section-head p { color: #b9b6aa; }
+    .mock-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .mock-card { border: 1px solid var(--paper); background: #24241f; }
+    .mock-card header { display: flex; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--paper); font: 700 10px/1 Consolas, monospace; }
+    .mock-screen { min-height: 220px; padding: 22px; background: var(--paper); color: var(--ink); }
+    .mock-screen.alt { background: var(--blue); }
+    .mock-screen.dark { background: #13130f; color: var(--acid); }
+    .mock-screen.red { background: var(--red); }
+    .mock-screen h3 { margin: 45px 0 9px; font: 400 32px/.95 Georgia, serif; }
+    .mock-card footer { display: flex; justify-content: space-between; padding: 10px 12px; font: 10px/1 Consolas, monospace; }
+    .ready { color: var(--acid); }
+    .checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 0 50px; padding-bottom: 80px; }
+    .check { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+    .check i { width: 25px; height: 25px; display: grid; place-content: center; border: 1px solid var(--ink); background: var(--acid); font-style: normal; font-weight: 800; }
+    .check h3 { margin: 2px 0 5px; font-size: 15px; }
+    .check p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .command-table { border: 2px solid var(--ink); margin-bottom: 80px; }
+    .command-row { display: grid; grid-template-columns: 170px 1fr auto; align-items: center; border-bottom: 1px solid var(--ink); }
+    .command-row:last-child { border: 0; }
+    .command-row code, .command-row span { padding: 14px; }
+    .command-row code { color: var(--red); font-weight: 700; }
+    .command-row span { border-left: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .mini-copy { align-self: stretch; border: 0; border-left: 1px solid var(--ink); background: transparent; padding: 0 14px; cursor: pointer; }
+    .mini-copy:hover { background: var(--acid); }
+    .closing { padding: 90px 0; text-align: center; background: var(--red); }
+    .closing h2 { margin: 0 auto 20px; max-width: 12ch; font: 400 clamp(50px, 8vw, 96px)/.92 Georgia, serif; letter-spacing: -.04em; }
+    .closing p { margin: 0 auto 28px; max-width: 48ch; line-height: 1.7; }
+    .closing a { display: inline-block; padding: 13px 18px; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 700; }
+    .toast {
+      position: fixed; right: 18px; bottom: 18px; z-index: 20; padding: 12px 15px;
+      background: var(--ink); color: var(--acid); font: 700 12px/1 Consolas, monospace;
+      transform: translateY(80px); transition: transform .3s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); }
+    @media (max-width: 900px) {
+      .hero, .section-head, .workbench { grid-template-columns: 1fr; }
+      .hero-stage { border-left: 0; border-top: 2px solid var(--ink); min-height: 620px; }
+      .battle-stack { width: min(520px, 76vw); }
+      .flow { grid-template-columns: repeat(2, 1fr); }
+      .flow article:nth-child(2) { border-right: 0; }
+      .use-cases { grid-template-columns: 1fr; }
+      .mock-gallery, .checklist { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .topbar nav a:not(:last-child) { display: none; }
+      .shell { width: min(100% - 22px, 1240px); }
+      .hero-copy { padding-right: 0; }
+      h1 { font-size: 58px; }
+      .hero-stage { min-height: 470px; padding: 28px; }
+      .battle-stack { width: min(390px, 78vw); min-width: 0; }
+      .flow { grid-template-columns: 1fr; }
+      .flow article { border-right: 0; border-bottom: 1px solid var(--ink); }
+      .command-row { grid-template-columns: 1fr auto; }
+      .command-row span { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top">DESIGN <b>BATTLE</b></a>
+    <nav>
+      <a href="#how">怎么用</a>
+      <a href="#brief">生成需求</a>
+      <a href="#commands">命令表</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section>
+      <div class="shell hero">
+        <div class="hero-copy">
+          <span class="tag">给设计师的 5 分钟上手指南</span>
+          <h1>让四种设计方向，同时开工。</h1>
+          <p>Design Battle 会把同一份页面需求交给多个设计 Skill。它们各自在隔离空间里完成方案，做好一个，画廊就立刻出现一个。你不需要等所有方案完成。</p>
+          <div class="start-box">
+            <header><span>最简单的使用方式</span><button class="copy" data-copy="使用 Design Battle，为一个专注计时器产品做 4 个风格差异明显的单页设计，并打开实时画廊。">复制</button></header>
+            <div class="prompt">使用 Design Battle，为一个专注计时器产品做 4 个风格差异明显的单页设计，并打开实时画廊。</div>
+          </div>
+        </div>
+        <div class="hero-stage" aria-label="多个设计方案叠放示意">
+          <div class="battle-stack">
+            <article class="concept"><div class="concept-top"><span>01 / MINIMAL</span><span>READY</span></div><h3>克制，专注。</h3><p>少量颜色、清晰节奏、安静的信息层级。</p></article>
+            <article class="concept"><div class="concept-top"><span>02 / BRUTALIST</span><span>READY</span></div><h3>时间就是界面。</h3><p>强对比、机械结构、直接表达。</p></article>
+            <article class="concept"><div class="concept-top"><span>03 / HIGH-END</span><span>READY</span></div><h3>找到你的专注区。</h3><p>这是同一份需求，第三种完全不同的设计回答。</p><span class="winner">★ 收藏这个方向</span></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="shell">
+        <div class="section-head"><h2>你只负责说清问题。</h2><p>把它当作一次快速视觉探索。先说清页面为谁服务、要完成什么任务、希望出现哪些内容。Design Battle 负责挑选不同设计 Skill、并行生成和展示结果。</p></div>
+        <div class="flow">
+          <article><b>1</b><h3>写一句需求</h3><p>例如：“为独立咖啡品牌做一个新品发布页，要有预约试饮入口。”</p></article>
+          <article><b>2</b><h3>启动 Battle</h3><p>直接在对话里说“使用 Design Battle”。也可以运行 <code>design-battle run</code>。</p></article>
+          <article><b>3</b><h3>边生成边看</h3><p>第一个方案完成后，实时画廊自动打开。后续方案会逐个出现。</p></article>
+          <article><b>4</b><h3>比较并收藏</h3><p>点开方案进入专注模式，用左右方向键切换，把值得继续的方向标为收藏。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="brief">
+      <div class="shell">
+        <div class="section-head"><h2>做一份好需求，不用写长文档。</h2><p>填写下面四项，就能得到一条适合直接发起 Design Battle 的需求。重点是设计目标和关键内容，不需要提前规定具体布局。</p></div>
+        <div class="workbench">
+          <form class="brief-builder" id="brief-form">
+            <header>BRIEF BUILDER / 需求生成器</header>
+            <div class="field"><label for="product">做什么产品或品牌？</label><input id="product" value="一款帮助创作者专注写作的桌面应用"></div>
+            <div class="field"><label for="page">要设计什么页面？</label><input id="page" value="产品发布单页"></div>
+            <div class="field"><label for="goal">用户看完后要做什么？</label><input id="goal" value="下载应用或加入候补名单"></div>
+            <div class="field"><label for="must">页面必须包含什么？</label><input id="must" value="产品价值、界面预览、功能特点、下载入口"></div>
+            <button class="build" type="submit">生成 Battle 需求</button>
+          </form>
+          <div class="result">
+            <header>READY TO SEND / 可直接发送</header>
+            <pre id="brief-output">使用 Design Battle，为一款帮助创作者专注写作的桌面应用设计产品发布单页。页面需要引导用户下载应用或加入候补名单，并包含产品价值、界面预览、功能特点、下载入口。请生成 4 个风格差异明显、可直接比较的完整方案，并打开实时画廊。</pre>
+            <button class="copy" id="copy-brief">复制这份需求</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <div class="section-head"><h2>适合什么时候用？</h2><p>最有价值的时机，不是已经确定了所有视觉细节，而是团队需要看见几种不同回答，再决定方向。</p></div>
+        <div class="use-cases">
+          <article class="case"><code>CASE / 方向探索</code><h3>评审前，先看到真正不同的方案。</h3><p>同一份需求同时尝试极简、编辑感、粗野主义和高级品牌方向，比用语言讨论“再大胆一点”有效得多。</p></article>
+          <article class="case"><code>CASE / 灵感突破</code><h3>卡住时，换一组设计脑回路。</h3><p>每个选手只使用一个主设计 Skill，方向差异更明确，不会互相折中成一个平均方案。</p></article>
+          <article class="case"><code>CASE / 快速验证</code><h3>把抽象需求变成可点击页面。</h3><p>所有结果都是完整独立 HTML，可以直接查看交互、响应式表现和真实内容节奏。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="gallery-demo">
+      <div class="shell">
+        <div class="section-head"><h2>画廊里，你会看到什么？</h2><p>每张卡片对应一个设计 Skill。Ready 的方案可以点开查看；失败不会影响其他方案；收藏会保留在历史记录中。</p></div>
+        <div class="mock-gallery">
+          <article class="mock-card"><header><span>01 / MINIMALIST-UI</span><span>★</span></header><div class="mock-screen"><h3>安静的写作空间</h3><p>克制的产品发布页方向。</p></div><footer><span class="ready">READY</span><span>点击放大</span></footer></article>
+          <article class="mock-card"><header><span>02 / INDUSTRIAL-BRUTALIST</span><span>☆</span></header><div class="mock-screen alt"><h3>拒绝分心。</h3><p>结构强烈、信息直接。</p></div><footer><span class="ready">READY</span><span>点击放大</span></footer></article>
+          <article class="mock-card"><header><span>03 / HIGH-END-VISUAL</span><span>☆</span></header><div class="mock-screen dark"><h3>写出重要的东西。</h3><p>高对比品牌叙事。</p></div><footer><span class="ready">READY</span><span>点击放大</span></footer></article>
+          <article class="mock-card"><header><span>04 / DESIGN-TASTE</span><span>☆</span></header><div class="mock-screen red"><h3>下一页，从这里开始。</h3><p>大胆的编辑式产品方向。</p></div><footer><span class="ready">READY</span><span>点击放大</span></footer></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <div class="section-head"><h2>给设计师的评审清单</h2><p>不要只问“哪个好看”。先判断每个方向如何回答产品问题，再决定哪些视觉语言值得进入下一轮。</p></div>
+        <div class="checklist">
+          <article class="check"><i>✓</i><div><h3>第一眼是否理解产品？</h3><p>三秒内能否看懂它是什么、为谁服务。</p></div></article>
+          <article class="check"><i>✓</i><div><h3>主行动是否明确？</h3><p>下载、预约、购买或注册入口是否自然突出。</p></div></article>
+          <article class="check"><i>✓</i><div><h3>视觉方向是否有记忆点？</h3><p>离开页面后，能否描述出它独有的设计语言。</p></div></article>
+          <article class="check"><i>✓</i><div><h3>信息节奏是否合理？</h3><p>内容顺序是否帮助用户逐步建立理解和信任。</p></div></article>
+          <article class="check"><i>✓</i><div><h3>能否适配真实内容？</h3><p>方向是否能容纳长文案、真实图片和边缘情况。</p></div></article>
+          <article class="check"><i>✓</i><div><h3>值得带走什么？</h3><p>即使不选整套方案，也可收藏其中的排版、配色或交互想法。</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="commands">
+      <div class="shell">
+        <div class="section-head"><h2>需要更多控制时，再用命令。</h2><p>日常使用直接在对话里提出需求即可。下面这些命令适合需要指定设计 Skill、控制数量或管理历史结果的用户。</p></div>
+        <div class="command-table">
+          <div class="command-row"><code>design-battle scan</code><span>查看当前可参赛的设计 Skill</span><button class="mini-copy" data-copy="node ./bin/design-battle.mjs scan">复制</button></div>
+          <div class="command-row"><code>design-battle run</code><span>直接生成并打开实时画廊</span><button class="mini-copy" data-copy='node ./bin/design-battle.mjs run "为产品做一个发布页" --host codex'>复制</button></div>
+          <div class="command-row"><code>--skills</code><span>指定参赛方向，例如极简和粗野主义</span><button class="mini-copy" data-copy='node ./bin/design-battle.mjs run "为产品做一个发布页" --skills minimalist-ui,industrial-brutalist-ui'>复制</button></div>
+          <div class="command-row"><code>design-battle list</code><span>查看历史 Battle</span><button class="mini-copy" data-copy="node ./bin/design-battle.mjs list">复制</button></div>
+          <div class="command-row"><code>design-battle open</code><span>重新打开某次 Battle 的画廊</span><button class="mini-copy" data-copy="node ./bin/design-battle.mjs open &lt;run-id&gt;">复制</button></div>
+          <div class="command-row"><code>design-battle close</code><span>关闭某次 Battle 的后台画廊</span><button class="mini-copy" data-copy="node ./bin/design-battle.mjs close &lt;run-id&gt;">复制</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="shell"><h2>先让方向出现，再决定方向。</h2><p>从一句清楚的设计需求开始。看见不同答案后，收藏有潜力的方向，再进入精细设计与实现。</p><a href="#top">回到开头，复制第一条需求</a></div>
+    </section>
+  </main>
+  <div class="toast" id="toast">已复制到剪贴板</div>
+  <script>
+    const toast = document.getElementById("toast");
+    function showToast() {
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1600);
+    }
+    async function copyText(text) {
+      await navigator.clipboard.writeText(text);
+      showToast();
+    }
+    document.querySelectorAll("[data-copy]").forEach((button) => button.addEventListener("click", () => copyText(button.dataset.copy)));
+    const form = document.getElementById("brief-form");
+    const output = document.getElementById("brief-output");
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const product = document.getElementById("product").value.trim();
+      const page = document.getElementById("page").value.trim();
+      const goal = document.getElementById("goal").value.trim();
+      const must = document.getElementById("must").value.trim();
+      output.textContent = `使用 Design Battle，为${product}设计${page}。页面需要引导用户${goal}，并包含${must}。请生成 4 个风格差异明显、可直接比较的完整方案，并打开实时画廊。`;
+    });
+    document.getElementById("copy-brief").addEventListener("click", () => copyText(output.textContent));
+  </script>
+</body>
+</html>
