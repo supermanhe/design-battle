@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Design Battle Gallery</title>
+    <link rel="stylesheet" href="/assets/app.css">
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="masthead">
+      <a class="wordmark" href="/" aria-label="Design Battle history">
+        <span>DESIGN</span>
+        <strong>BATTLE</strong>
+        <i>LIVE</i>
+      </a>
+      <div class="run-copy">
+        <span class="eyebrow" id="run-id">Loading run</span>
+        <h1 id="brief">Preparing the arena...</h1>
+      </div>
+      <div class="scoreboard" id="scoreboard" aria-live="polite"></div>
+      <button class="history-trigger" id="history-trigger" type="button">
+        <span>Archive</span>
+        <b id="history-count">00</b>
+      </button>
+    </header>
+
+    <main>
+      <section class="status-strip">
+        <div><span class="pulse"></span><strong id="live-label">Live generation</strong></div>
+        <p id="host-label">Host</p>
+        <p>Click any ready concept for focus mode. Use <kbd>←</kbd> <kbd>→</kbd> to compare.</p>
+      </section>
+      <section class="gallery" id="gallery" aria-label="Design entries"></section>
+    </main>
+
+    <aside class="history-panel" id="history-panel" aria-hidden="true">
+      <div class="panel-head">
+        <div><span class="eyebrow">Run archive</span><h2>Past battles</h2></div>
+        <button class="icon-button" data-close-history type="button" aria-label="Close archive">×</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </aside>
+    <button class="panel-scrim" id="panel-scrim" data-close-history type="button" aria-label="Close archive"></button>
+
+    <section class="focus-view" id="focus-view" aria-hidden="true">
+      <div class="focus-main">
+        <div class="focus-toolbar">
+          <div><span class="eyebrow" id="focus-index">Concept</span><h2 id="focus-title">Skill</h2></div>
+          <div class="focus-actions">
+            <button class="text-button" id="focus-refresh" type="button">Refresh</button>
+            <button class="text-button" id="focus-favorite" type="button">Favorite</button>
+            <button class="icon-button dark" id="focus-close" type="button" aria-label="Close focus view">×</button>
+          </div>
+        </div>
+        <iframe id="focus-frame" title="Focused design entry" sandbox="allow-scripts allow-forms allow-modals"></iframe>
+      </div>
+      <nav class="thumbnail-rail" id="thumbnail-rail" aria-label="Entry thumbnails"></nav>
+    </section>
+
+    <dialog id="log-dialog">
+      <div class="panel-head">
+        <div><span class="eyebrow">Agent log</span><h2 id="log-title">Failure details</h2></div>
+        <button class="icon-button" data-close-log type="button" aria-label="Close log">×</button>
+      </div>
+      <pre id="log-content"></pre>
+    </dialog>
+
+    <template id="entry-template">
+      <article class="entry-card">
+        <div class="entry-topline">
+          <div><span class="entry-number"></span><strong class="entry-skill"></strong></div>
+          <button class="favorite-button" type="button" aria-label="Toggle favorite">☆</button>
+        </div>
+        <div class="entry-stage">
+          <iframe class="entry-frame" loading="lazy" sandbox="allow-scripts allow-forms allow-modals"></iframe>
+          <div class="progress-state">
+            <div class="orbit"><i></i><i></i><i></i></div>
+            <strong class="stage-title"></strong>
+            <span class="stage-time"></span>
+          </div>
+        </div>
+        <footer><span class="entry-status"></span><button class="log-button" type="button">View log</button></footer>
+      </article>
+    </template>
+
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

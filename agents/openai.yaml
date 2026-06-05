@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Battle"
+  short_description: "Run isolated frontend design skills side by side"
+  default_prompt: "Use $design-battle to build four isolated single-page design variants and open the live gallery."
