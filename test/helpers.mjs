@@ -18,6 +18,15 @@ export async function writeSkill(root, folder, name, description, body = "") {
   return file;
 }
 
+export async function waitFor(predicate, { timeoutMs = 3000, intervalMs = 20 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(`Condition was not met within ${timeoutMs}ms`);
+}
+
 export const sampleSkills = [
   { name: "editorial-ui", description: "Editorial frontend website design", path: "/skills/editorial/SKILL.md", sources: ["/skills/editorial/SKILL.md"] },
   { name: "brutalist-ui", description: "Raw brutalist interface and dashboard design", path: "/skills/brutalist/SKILL.md", sources: ["/skills/brutalist/SKILL.md"] },

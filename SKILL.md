@@ -103,6 +103,7 @@ node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" doctor
 # List or reopen historical runs
 node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" list
 node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" open <run-id>
+node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" close <run-id>
 node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" clean <run-id>
 ```
 

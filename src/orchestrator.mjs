@@ -7,6 +7,7 @@ import { createRun } from "./state.mjs";
 import { scanSkills, selectSkills } from "./skills.mjs";
 import { runEntries } from "./runner.mjs";
 import { readJson } from "./json.mjs";
+import { openLocalUrl } from "./open.mjs";
 
 const binFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "bin", "design-battle.mjs");
 
@@ -55,6 +56,11 @@ export async function runBattle(options) {
 
 export async function launchGallery({ dataDir = defaultDataDir(), runId, noOpen = false }) {
   const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
+  const existing = await readJson(galleryFile);
+  if (existing?.url && await galleryIsAlive(existing, runId)) {
+    if (!noOpen) openLocalUrl(existing.url);
+    return existing;
+  }
   await rm(galleryFile, { force: true });
   const args = [binFile, "serve", runId, "--data-dir", dataDir, "--auto-open"];
   if (noOpen) args.push("--no-open");
@@ -74,4 +80,41 @@ export async function launchGallery({ dataDir = defaultDataDir(), runId, noOpen 
     }
   }
   throw new Error("Gallery server did not start in time.");
+}
+
+export async function closeGallery({ dataDir = defaultDataDir(), runId }) {
+  const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
+  const gallery = await readJson(galleryFile);
+  if (!gallery?.url || !gallery.shutdownToken || !(await galleryIsAlive(gallery, runId))) {
+    await rm(galleryFile, { force: true });
+    return false;
+  }
+  const response = await fetch(new URL("/api/shutdown", gallery.url), {
+    method: "POST",
+    headers: { "X-Design-Battle-Token": gallery.shutdownToken },
+    signal: AbortSignal.timeout(1000)
+  });
+  if (!response.ok) throw new Error(`Gallery shutdown failed: ${response.status}`);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    try {
+      await access(galleryFile);
+    } catch {
+      return true;
+    }
+  }
+  await rm(galleryFile, { force: true });
+  return true;
+}
+
+async function galleryIsAlive(gallery, runId) {
+  try {
+    const healthUrl = new URL("/api/health", gallery.url);
+    const response = await fetch(healthUrl, { signal: AbortSignal.timeout(500) });
+    if (!response.ok) return false;
+    const health = await response.json();
+    return health.pid === gallery.pid && health.runId === runId;
+  } catch {
+    return false;
+  }
 }

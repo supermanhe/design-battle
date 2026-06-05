@@ -7,7 +7,7 @@ import { buildEntryPrompt } from "../src/prompt.mjs";
 import { createRun, loadRun, updateEntry, validateAndMarkReady } from "../src/state.mjs";
 import { sampleSkills, temporaryDirectory } from "./helpers.mjs";
 
-for (const host of ["codex", "claude", "hermes"]) {
+for (const host of ["codex", "claude", "hermes", "openclaw"]) {
   test(`${host} native delegation uses the shared file protocol`, async (t) => {
     const temporary = await temporaryDirectory();
     t.after(temporary.cleanup);

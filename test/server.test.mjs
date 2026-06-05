@@ -124,3 +124,23 @@ test("gallery automatically chooses another local port after a conflict", async 
   t.after(gallery.close);
   assert.notEqual(gallery.server.address().port, requestedPort);
 });
+
+test("gallery health identifies its process and bound run", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Health", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const gallery = await startGalleryServer({ dataDir: temporary.dir, runId: run.id });
+  t.after(gallery.close);
+  const health = await (await fetch(`${gallery.baseUrl}/api/health`)).json();
+  assert.deepEqual(health, { ok: true, pid: process.pid, runId: run.id });
+});
+
+test("gallery shutdown requires its private token", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Shutdown", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const gallery = await startGalleryServer({ dataDir: temporary.dir, runId: run.id });
+  t.after(() => gallery.close().catch(() => {}));
+  const response = await fetch(`${gallery.baseUrl}/api/shutdown`, { method: "POST" });
+  assert.equal(response.status, 403);
+});

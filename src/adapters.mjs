@@ -4,6 +4,7 @@ import { appendFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { entryDir } from "./paths.mjs";
 import { buildEntryPrompt } from "./prompt.mjs";
+import { loadRun } from "./state.mjs";
 
 export const HOSTS = {
   codex: {
@@ -84,10 +85,12 @@ export async function runCliEntry({ dataDir, run, entry, timeoutMs, env = proces
     else processHandle.stdin.end();
     let settled = false;
     let timer;
+    let cancellationPoll;
     const finish = (callback, value) => {
       if (settled) return;
       settled = true;
       if (timer) clearTimeout(timer);
+      if (cancellationPoll) clearInterval(cancellationPoll);
       callback(value);
     };
     processHandle.on("error", (error) => finish(reject, error));
@@ -95,11 +98,26 @@ export async function runCliEntry({ dataDir, run, entry, timeoutMs, env = proces
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearInterval(cancellationPoll);
       await terminateProcessTree(processHandle);
       const error = new Error(`Timed out after ${timeoutMs}ms`);
       error.code = "ETIMEDOUT";
       reject(error);
     }, timeoutMs);
+    cancellationPoll = setInterval(async () => {
+      if (settled) return;
+      const current = await loadRun(dataDir, run.id).catch(() => null);
+      const status = current?.entries.find((candidate) => candidate.id === entry.id)?.status;
+      if (status !== "cancelled") return;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(cancellationPoll);
+      await terminateProcessTree(processHandle);
+      const error = new Error("Entry was cancelled.");
+      error.code = "ECANCELLED";
+      reject(error);
+    }, 250);
+    cancellationPoll.unref?.();
     processHandle.on("exit", (code, signal) => {
       if (code === 0) finish(resolve, { code, signal });
       else finish(reject, new Error(`Agent exited with code ${code}${signal ? ` (${signal})` : ""}`));

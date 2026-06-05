@@ -1,11 +1,12 @@
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import { entryDir, galleryRoot, runDir, safeJoin } from "./paths.mjs";
 import { listRuns, loadRun, readLog, recoverRun, updateEntry } from "./state.mjs";
 import { openLocalUrl } from "./open.mjs";
-import { writeJson } from "./json.mjs";
+import { readJson, writeJson } from "./json.mjs";
 
 const TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -32,7 +33,17 @@ export async function startGalleryServer({
   pollMs = 500
 }) {
   const clients = new Map();
-  const server = http.createServer((request, response) => route({ request, response, dataDir, runId, clients }));
+  const shutdownToken = randomUUID();
+  let close;
+  const server = http.createServer((request, response) => route({
+    request,
+    response,
+    dataDir,
+    runId,
+    clients,
+    shutdownToken,
+    shutdown: () => close()
+  }));
   try {
     await listen(server, port, host);
   } catch (error) {
@@ -45,6 +56,7 @@ export async function startGalleryServer({
     await writeJson(path.join(runDir(dataDir, runId), "gallery.json"), {
       url: `${baseUrl}/?run=${encodeURIComponent(runId)}`,
       pid: process.pid,
+      shutdownToken,
       startedAt: new Date().toISOString()
     });
   }
@@ -78,12 +90,20 @@ export async function startGalleryServer({
     }
   }, pollMs);
   interval.unref?.();
-  const close = async () => {
+  close = async () => {
     clearInterval(interval);
     for (const watchers of clients.values()) {
       for (const watcher of watchers) watcher.end();
     }
-    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => {
+      server.close(resolve);
+      server.closeIdleConnections?.();
+    });
+    if (runId) {
+      const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
+      const gallery = await readJson(galleryFile).catch(() => null);
+      if (gallery?.pid === process.pid) await rm(galleryFile, { force: true });
+    }
   };
   return { server, close, baseUrl, url: runId ? `${baseUrl}/?run=${encodeURIComponent(runId)}` : baseUrl };
 }
@@ -104,11 +124,20 @@ function listen(server, port, host) {
   });
 }
 
-async function route({ request, response, dataDir, runId, clients }) {
+async function route({ request, response, dataDir, runId, clients, shutdownToken, shutdown }) {
   const url = new URL(request.url, "http://localhost");
   try {
     if (request.method === "GET" && url.pathname === "/api/runs") {
       return json(response, 200, await listRuns(dataDir));
+    }
+    if (request.method === "GET" && url.pathname === "/api/health") {
+      return json(response, 200, { ok: true, pid: process.pid, runId });
+    }
+    if (request.method === "POST" && url.pathname === "/api/shutdown") {
+      if (request.headers["x-design-battle-token"] !== shutdownToken) return json(response, 403, { error: "Forbidden" });
+      json(response, 202, { closing: true });
+      setTimeout(() => shutdown().catch(() => {}), 0);
+      return;
     }
     let match = /^\/api\/runs\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && match) {

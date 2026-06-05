@@ -1,6 +1,6 @@
 import { access, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { entryDir, runDir, runsDir } from "./paths.mjs";
+import { entryDir, runDir, runsDir, safeJoin } from "./paths.mjs";
 import { readJson, writeJson } from "./json.mjs";
 
 export const STATUSES = new Set(["queued", "running", "ready", "failed", "cancelled"]);
@@ -59,7 +59,7 @@ export async function createRun({ dataDir, brief, host, skills, options = {} }) 
   return run;
 }
 
-export async function updateEntry(dataDir, runId, entryId, patch) {
+export async function updateEntry(dataDir, runId, entryId, patch, { unlessStatuses = [] } = {}) {
   const runFile = path.join(runDir(dataDir, runId), "run.json");
   return withWriteLock(runFile, async () => {
     const run = await readJson(runFile);
@@ -72,6 +72,7 @@ export async function updateEntry(dataDir, runId, entryId, patch) {
       await readJson(path.join(dir, "meta.json"), {}),
       await readJson(path.join(dir, "status.json"), {})
     );
+    if (unlessStatuses.includes(entry.status)) return entry;
     if (patch.status && !STATUSES.has(patch.status)) throw new Error(`Invalid entry status: ${patch.status}`);
     Object.assign(entry, patch, { updatedAt: new Date().toISOString() });
     run.updatedAt = entry.updatedAt;
@@ -89,7 +90,12 @@ export async function updateEntry(dataDir, runId, entryId, patch) {
 }
 
 export async function validateAndMarkReady(dataDir, runId, entryId) {
-  const indexFile = path.join(entryDir(dataDir, runId, entryId), "site", "index.html");
+  const run = await loadRun(dataDir, runId);
+  const entry = run?.entries.find((candidate) => candidate.id === entryId);
+  if (!entry) throw new Error(`Entry not found: ${entryId}`);
+  if (entry.status === "cancelled") return entry;
+  const siteDir = path.join(entryDir(dataDir, runId, entryId), "site");
+  const indexFile = path.join(siteDir, "index.html");
   const info = await stat(indexFile).catch(() => null);
   if (!info?.isFile() || info.size < 32) {
     return updateEntry(dataDir, runId, entryId, {
@@ -97,7 +103,7 @@ export async function validateAndMarkReady(dataDir, runId, entryId) {
       stage: "Validation failed",
       error: "site/index.html is missing or empty",
       completedAt: new Date().toISOString()
-    });
+    }, { unlessStatuses: ["cancelled"] });
   }
   const source = await readFile(indexFile, "utf8").catch(() => "");
   if (!/<(?:!doctype\s+html|html)(?:\s|>)/i.test(source)) {
@@ -106,14 +112,81 @@ export async function validateAndMarkReady(dataDir, runId, entryId) {
       stage: "Validation failed",
       error: "site/index.html is not a standalone HTML document",
       completedAt: new Date().toISOString()
-    });
+    }, { unlessStatuses: ["cancelled"] });
+  }
+  const missingAssets = await findMissingLocalAssets(siteDir, source);
+  if (missingAssets.length) {
+    return updateEntry(dataDir, runId, entryId, {
+      status: "failed",
+      stage: "Validation failed",
+      error: `Missing or unsafe local assets: ${missingAssets.slice(0, 3).join(", ")}`,
+      completedAt: new Date().toISOString()
+    }, { unlessStatuses: ["cancelled"] });
   }
   return updateEntry(dataDir, runId, entryId, {
     status: "ready",
     stage: "Ready",
     error: null,
     completedAt: new Date().toISOString()
-  });
+  }, { unlessStatuses: ["cancelled"] });
+}
+
+async function findMissingLocalAssets(siteDir, source) {
+  const references = collectAssetReferences(source);
+  const missing = [];
+  for (const reference of new Set(references)) {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(reference)) continue;
+    const pathname = reference.split(/[?#]/, 1)[0];
+    if (!pathname) continue;
+    let decoded;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      missing.push(reference);
+      continue;
+    }
+    const candidate = safeJoin(siteDir, decoded);
+    if (!candidate || !(await pathExists(candidate))) missing.push(reference);
+  }
+  return missing;
+}
+
+function collectAssetReferences(source) {
+  const references = [];
+  for (const tagMatch of source.matchAll(/<([a-z][a-z0-9:-]*)\b((?:"[^"]*"|'[^']*'|[^'">])*)>/gi)) {
+    const tagName = tagMatch[1].toLowerCase();
+    const attributes = tagMatch[2];
+    for (const attributeMatch of attributes.matchAll(/(?:^|\s)(src|poster|srcset|href)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+      const name = attributeMatch[1].toLowerCase();
+      const value = attributeMatch[2] ?? attributeMatch[3];
+      if (name === "href" && tagName !== "link") continue;
+      if (name === "srcset") references.push(...parseSrcsetReferences(value));
+      else references.push(value);
+    }
+  }
+  return references;
+}
+
+function parseSrcsetReferences(value) {
+  const references = [];
+  let remaining = value.trim();
+  while (remaining) {
+    remaining = remaining.replace(/^[,\s]+/, "");
+    if (!remaining) break;
+    const end = /^data:/i.test(remaining) ? remaining.search(/\s/) : remaining.search(/[\s,]/);
+    const reference = end === -1 ? remaining : remaining.slice(0, end);
+    references.push(reference);
+    if (end === -1) break;
+    remaining = remaining.slice(end);
+    if (remaining.startsWith(",")) {
+      remaining = remaining.slice(1);
+      continue;
+    }
+    const next = remaining.indexOf(",");
+    if (next === -1) break;
+    remaining = remaining.slice(next + 1);
+  }
+  return references.filter(Boolean);
 }
 
 export async function loadRun(dataDir, runId) {

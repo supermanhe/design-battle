@@ -26,6 +26,38 @@ test("validation marks missing entry failed and a standalone page ready", async 
   assert.equal(ready.status, "ready");
 });
 
+test("validation rejects missing local assets and preserves cancellation", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Assets", host: "codex", skills: sampleSkills.slice(0, 2) });
+  const firstSite = path.join(entryDir(temporary.dir, run.id, run.entries[0].id), "site");
+  await writeFile(path.join(firstSite, "index.html"), '<!doctype html><html><body><img src="missing.png"></body></html>');
+  const invalid = await validateAndMarkReady(temporary.dir, run.id, run.entries[0].id);
+  assert.equal(invalid.status, "failed");
+  assert.match(invalid.error, /missing\.png/);
+
+  const secondSite = path.join(entryDir(temporary.dir, run.id, run.entries[1].id), "site");
+  await writeFile(path.join(secondSite, "index.html"), "<!doctype html><html><body>Late</body></html>");
+  await updateEntry(temporary.dir, run.id, run.entries[1].id, { status: "cancelled", stage: "Cancelled" });
+  assert.equal((await validateAndMarkReady(temporary.dir, run.id, run.entries[1].id)).status, "cancelled");
+});
+
+test("asset validation reads HTML attributes and includes srcset candidates", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Asset parsing", host: "codex", skills: sampleSkills.slice(0, 2) });
+  const scriptSite = path.join(entryDir(temporary.dir, run.id, run.entries[0].id), "site");
+  await writeFile(path.join(scriptSite, "index.html"), '<!doctype html><html><body><script>const src = "camera";</script></body></html>');
+  assert.equal((await validateAndMarkReady(temporary.dir, run.id, run.entries[0].id)).status, "ready");
+
+  const srcsetSite = path.join(entryDir(temporary.dir, run.id, run.entries[1].id), "site");
+  await writeFile(path.join(srcsetSite, "index.html"), '<!doctype html><html><body><img srcset="missing-small.png 1x, missing-large.png 2x"></body></html>');
+  const invalid = await validateAndMarkReady(temporary.dir, run.id, run.entries[1].id);
+  assert.equal(invalid.status, "failed");
+  assert.match(invalid.error, /missing-small\.png/);
+  assert.match(invalid.error, /missing-large\.png/);
+});
+
 test("recovery preserves fresh running entries and fails stale interrupted entries", async (t) => {
   const temporary = await temporaryDirectory();
   t.after(temporary.cleanup);
@@ -117,4 +149,21 @@ test("loadRun merges per-entry metadata and status over a stale run summary", as
   assert.equal(loaded.entries[0].favorite, true);
   assert.equal(loaded.entries[0].status, "running");
   assert.equal(loaded.entries[0].stage, "Independent status");
+});
+
+test("conditional updates cannot overwrite a cancelled terminal state", async (t) => {
+  const temporary = await temporaryDirectory();
+  t.after(temporary.cleanup);
+  const run = await createRun({ dataDir: temporary.dir, brief: "Terminal", host: "codex", skills: sampleSkills.slice(0, 1) });
+  const entryId = run.entries[0].id;
+  await updateEntry(temporary.dir, run.id, entryId, { status: "cancelled", stage: "Cancelled" });
+  const result = await updateEntry(
+    temporary.dir,
+    run.id,
+    entryId,
+    { status: "failed", stage: "Late failure" },
+    { unlessStatuses: ["cancelled"] }
+  );
+  assert.equal(result.status, "cancelled");
+  assert.equal((await loadRun(temporary.dir, run.id)).entries[0].stage, "Cancelled");
 });

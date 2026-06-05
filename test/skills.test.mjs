@@ -47,6 +47,9 @@ test("scan and selection reject non-frontend design skills and the orchestrator 
   await writeSkill(temporary.dir, "brand", "brandkit", "Premium logo and brand identity design");
   await writeSkill(temporary.dir, "guides", "guidelines", "Design guidelines and questions for presentations");
   await writeSkill(temporary.dir, "battle", "design-battle", "Compare frontend UI design skills");
+  await writeSkill(temporary.dir, "browser", "playwright", "Browser automation for frontend website testing");
+  await writeSkill(temporary.dir, "image", "imagegen", "Generate visual assets for frontend interfaces");
+  await writeSkill(temporary.dir, "motion", "gsap-core", "Animate frontend UI with GSAP");
   await writeSkill(temporary.dir, "web", "web-ui", "Responsive frontend website interface design");
   const skills = await scanSkills({ roots: [temporary.dir] });
   assert.deepEqual(skills.map((skill) => skill.name), ["web-ui"]);
