@@ -4,7 +4,7 @@ import { writeJson } from "../src/json.mjs";
 import { closeGallery, launchGallery } from "../src/orchestrator.mjs";
 import { runDir } from "../src/paths.mjs";
 import { createRun } from "../src/state.mjs";
-import { sampleSkills, temporaryDirectory } from "./helpers.mjs";
+import { sampleSkills, temporaryDirectory, waitFor } from "./helpers.mjs";
 import path from "node:path";
 
 test("launchGallery ignores metadata left by an earlier gallery process", async (t) => {
@@ -51,5 +51,12 @@ test("closeGallery stops a healthy gallery and removes its metadata", async (t) 
   const run = await createRun({ dataDir: temporary.dir, brief: "Close gallery", host: "codex", skills: sampleSkills.slice(0, 1) });
   const gallery = await launchGallery({ dataDir: temporary.dir, runId: run.id, noOpen: true });
   assert.equal(await closeGallery({ dataDir: temporary.dir, runId: run.id }), true);
-  await assert.rejects(() => fetch(gallery.url));
+  await waitFor(async () => {
+    try {
+      await fetch(gallery.url, { signal: AbortSignal.timeout(200) });
+      return false;
+    } catch {
+      return true;
+    }
+  });
 });

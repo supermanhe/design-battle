@@ -5,7 +5,7 @@ import test from "node:test";
 import { entryDir } from "../src/paths.mjs";
 import { runEntries } from "../src/runner.mjs";
 import { createRun, loadRun } from "../src/state.mjs";
-import { sampleSkills, temporaryDirectory } from "./helpers.mjs";
+import { sampleSkills, temporaryDirectory, waitFor } from "./helpers.mjs";
 
 test("mock executor finishes entries out of order without waiting for the slowest", async (t) => {
   const temporary = await temporaryDirectory();
@@ -17,10 +17,10 @@ test("mock executor finishes entries out of order without waiting for the slowes
     runId: run.id,
     concurrency: 3,
     executor: "mock",
-    mockDelays: [180, 25, 90],
+    mockDelays: [1000, 25, 300],
     onFirstSettled: (snapshot) => firstSettled.push(snapshot.entries.find((entry) => entry.status === "ready")?.id)
   });
-  await new Promise((resolve) => setTimeout(resolve, 70));
+  await waitFor(async () => (await loadRun(temporary.dir, run.id)).entries[1].status === "ready");
   const during = await loadRun(temporary.dir, run.id);
   assert.equal(during.entries[1].status, "ready");
   assert.equal(during.entries[0].status, "running");
