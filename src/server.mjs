@@ -95,7 +95,10 @@ export async function startGalleryServer({
     for (const watchers of clients.values()) {
       for (const watcher of watchers) watcher.end();
     }
-    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => {
+      server.close(resolve);
+      server.closeIdleConnections?.();
+    });
     if (runId) {
       const galleryFile = path.join(runDir(dataDir, runId), "gallery.json");
       const gallery = await readJson(galleryFile).catch(() => null);
