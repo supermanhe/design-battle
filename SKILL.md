@@ -33,7 +33,7 @@ Prefer the current host's native parallel delegation when it is callable. Read [
 Use the CLI fallback when native delegation is unavailable:
 
 ```sh
-node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" run "<brief>" --host <codex|claude|hermes|openclaw>
+node "$DESIGN_BATTLE_ROOT/bin/design-battle.mjs" run "<brief>" --host <codex|claude|hermes|opencode|openclaw>
 ```
 
 Useful overrides:

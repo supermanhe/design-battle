@@ -18,6 +18,7 @@ $Hosts = @(
   @{ Name = "Codex"; Command = "codex"; Root = Join-Path $HomeDir ".codex\skills" },
   @{ Name = "Claude Code"; Command = "claude"; Root = Join-Path $HomeDir ".claude\skills" },
   @{ Name = "Hermes"; Command = "hermes"; Root = Join-Path $HomeDir ".hermes\skills" },
+  @{ Name = "OpenCode"; Command = "opencode"; Root = Join-Path $HomeDir ".config\opencode\skills" },
   @{ Name = "OpenClaw"; Command = "openclaw"; Root = Join-Path $HomeDir ".openclaw\skills" }
 )
 

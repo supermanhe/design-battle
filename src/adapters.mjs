@@ -43,6 +43,19 @@ export const HOSTS = {
     stdin: false,
     native: "delegate_task"
   },
+  opencode: {
+    command: "opencode",
+    args: (dir, prompt, options = {}) => [
+      "run", prompt, "--dir", dir, "--dangerously-skip-permissions",
+      ...(options.hostModel ? ["--model", openCodeModel(options)] : [])
+    ],
+    stdin: false,
+    native: "agent/session delegation",
+    windowsLaunch: (env) => {
+      const executable = path.join(env.APPDATA || "", "npm", "node_modules", "opencode-ai", "bin", "opencode.exe");
+      return existsSync(executable) ? { command: executable, prefix: [] } : null;
+    }
+  },
   openclaw: {
     command: "openclaw",
     args: (dir, prompt) => {
@@ -55,6 +68,11 @@ export const HOSTS = {
     windowsShell: true
   }
 };
+
+function openCodeModel(options) {
+  if (!options.hostProvider || String(options.hostModel).includes("/")) return options.hostModel;
+  return `${options.hostProvider}/${options.hostModel}`;
+}
 
 export function getHostAdapter(host) {
   const adapter = HOSTS[host];

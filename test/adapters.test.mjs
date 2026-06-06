@@ -6,8 +6,8 @@ import { prepareBattle } from "../src/orchestrator.mjs";
 import { createRun, updateEntry } from "../src/state.mjs";
 import { sampleSkills, temporaryDirectory, writeSkill } from "./helpers.mjs";
 
-test("all four host adapters expose native and CLI fallback contracts", () => {
-  assert.deepEqual(Object.keys(HOSTS), ["codex", "claude", "hermes", "openclaw"]);
+test("all five host adapters expose native and CLI fallback contracts", () => {
+  assert.deepEqual(Object.keys(HOSTS), ["codex", "claude", "hermes", "opencode", "openclaw"]);
   for (const host of Object.keys(HOSTS)) {
     const adapter = getHostAdapter(host);
     assert.ok(adapter.command);
@@ -17,6 +17,8 @@ test("all four host adapters expose native and CLI fallback contracts", () => {
   const openClawArgs = HOSTS.openclaw.args("/runs/run-one/entries/entry-one", "prompt");
   assert.deepEqual(openClawArgs.slice(0, 3), ["agent", "--session-key", "design-battle-run-one-entry-one"]);
   assert.deepEqual(HOSTS.hermes.args("/entry", "prompt", { hostProvider: "copilot", hostModel: "gpt-4.1" }).slice(-4), ["--provider", "copilot", "--model", "gpt-4.1"]);
+  assert.deepEqual(HOSTS.opencode.args("/entry", "prompt", { hostProvider: "zai", hostModel: "glm-5" }), ["run", "prompt", "--dir", "/entry", "--dangerously-skip-permissions", "--model", "zai/glm-5"]);
+  assert.deepEqual(HOSTS.opencode.args("/entry", "prompt", { hostModel: "anthropic/claude-sonnet-4" }).slice(-2), ["--model", "anthropic/claude-sonnet-4"]);
 });
 
 test("entry prompt enforces one skill, standalone output, and sibling isolation", () => {

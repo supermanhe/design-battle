@@ -32,6 +32,7 @@ export function defaultSkillRoots(env = process.env) {
     path.join(home, ".agents", "skills"),
     path.join(home, ".claude", "skills"),
     path.join(home, ".hermes", "skills"),
+    path.join(home, ".config", "opencode", "skills"),
     path.join(home, ".openclaw", "skills")
   ].filter(Boolean);
 }

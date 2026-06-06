@@ -51,6 +51,7 @@ check_host() {
 check_host "Codex" codex "$INSTALL_HOME/.codex/skills"
 check_host "Claude Code" claude "$INSTALL_HOME/.claude/skills"
 check_host "Hermes" hermes "$INSTALL_HOME/.hermes/skills"
+check_host "OpenCode" opencode "$INSTALL_HOME/.config/opencode/skills"
 check_host "OpenClaw" openclaw "$INSTALL_HOME/.openclaw/skills"
 install_skill "Shared Agent Skills" "$INSTALL_HOME/.agents/skills"
 node "$REPO/bin/design-battle.mjs" doctor

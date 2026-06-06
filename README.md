@@ -5,7 +5,7 @@ Design Battle runs several installed frontend design Skills against the same sta
 ## Requirements
 
 - Node.js 18+
-- At least one supported host CLI: Codex, Claude Code, Hermes, or OpenClaw
+- At least one supported host CLI: Codex, Claude Code, Hermes, OpenCode, or OpenClaw
 - Installed frontend design Skills
 
 ## Quick Start

@@ -72,3 +72,25 @@ design-battle run "<brief>" --host openclaw
 The fallback invokes `openclaw agent --session-key <run-entry> --message <prompt> --json`, following the official [Agent CLI](https://docs.openclaw.ai/cli/agent) contract.
 
 When OpenClaw is unavailable, use `--executor mock` only for adapter contract tests. Do not claim a real OpenClaw run.
+
+## OpenCode
+
+Prefer OpenCode agent or session delegation when the current OpenCode environment exposes it. Give each delegated agent the exact `task` prompt and isolated entry directory, then validate results independently.
+
+Fallback:
+
+```sh
+design-battle run "<brief>" --host opencode
+```
+
+The fallback invokes `opencode run <prompt> --dir <entry-directory> --dangerously-skip-permissions`. This is limited to the contestant's isolated entry directory so non-interactive tool calls can complete. Override the model with OpenCode's `provider/model` format:
+
+```sh
+design-battle run "<brief>" --host opencode --model zai/glm-5
+```
+
+Alternatively, pass provider and model separately and Design Battle combines them:
+
+```sh
+design-battle run "<brief>" --host opencode --provider zai --model glm-5
+```
